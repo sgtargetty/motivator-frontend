@@ -602,6 +602,7 @@ void _showLockScreenBypassAlert({
   String? audioPath,
 }) async {
   print('🚨 _showLockScreenBypassAlert called with title: $title');
+  print('🔍 DEBUG: Current payload: $payload');
   
   if (_isAmberAlertActive) {
     print('🔄 Amber alert already active - skipping duplicate');
@@ -610,25 +611,29 @@ void _showLockScreenBypassAlert({
   
   _isAmberAlertActive = true;
   
+  // 🚨 IMMEDIATE VIBRATION FIRST (CRITICAL FIX)
+  print('🚨 TRIGGERING IMMEDIATE VIBRATION...');
+  _triggerEmergencyVibrationPattern();
+  
   try {
     // 🚨 PURE NOTIFICATION APPROACH - Just like the working hijack version
     print('🚨 Creating powerful fullscreen intent notification for lock screen bypass...');
     
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
-        id: 991,
+        id: 992, // Different ID to avoid conflicts
         channelKey: 'amber_alert_channel',
         
         // 🚨 EMERGENCY STYLING (matches working version)
         title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
-        body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
+        body: 'CRITICAL ALERT: Tap OPEN EMERGENCY ALERT button below!',
         summary: 'EMERGENCY ALERT SYSTEM',
         
         // 🚨 MAXIMUM VISIBILITY SETTINGS
         notificationLayout: NotificationLayout.BigText,
         category: NotificationCategory.Alarm,
         
-        // 🚨 FULL SCREEN SETTINGS
+        // 🚨 FULL SCREEN SETTINGS (NOW with fullScreenIntent for the button notification)
         wakeUpScreen: true,
         fullScreenIntent: true,
         criticalAlert: true,
@@ -648,7 +653,7 @@ void _showLockScreenBypassAlert({
         actionType: ActionType.Default,
         
         payload: {
-          'alertType': 'full_screen_intent',
+          'alertType': 'lock_screen_bypass',
           'emergency': 'true',
           'priority': 'maximum',
           'strategy': 'A',
@@ -671,10 +676,10 @@ void _showLockScreenBypassAlert({
       ],
     );
     
-    print('✅ Pure notification hijack created - should bypass lock screen automatically');
+    print('✅ Pure notification hijack created with OPEN EMERGENCY button');
     
     // 🚨 Reset flag after delay (the notification handles the hijacking)
-    Timer(const Duration(seconds: 5), () {
+    Timer(const Duration(seconds: 10), () {
       _isAmberAlertActive = false;
       print('🔄 Amber alert flag reset after notification hijack');
     });
@@ -685,80 +690,84 @@ void _showLockScreenBypassAlert({
   }
 }
 
-  // 🚨 NEW: Force app to foreground using native Android mechanism
-Future<void> _forceAppToForegroundNative() async {
-  print('🚨 FORCING APP TO FOREGROUND USING NATIVE INTENT');
+// ===== UPDATE YOUR _onNotificationDisplayed METHOD IN NOTIFICATION_MANAGER =====
+// Add debugging to see what's happening
+
+@pragma("vm:entry-point")
+static Future<void> _onNotificationDisplayed(ReceivedNotification receivedNotification) async {
+  print('🔔 Notification displayed: ${receivedNotification.title}');
+  print('🔍 DEBUG: Notification ID: ${receivedNotification.id}');
+  print('🔍 DEBUG: Channel: ${receivedNotification.channelKey}');
+  print('🔍 DEBUG: Payload: ${receivedNotification.payload}');
   
-  try {
-    // Create a high-priority notification that forces the app to foreground
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: 999997,
-        channelKey: 'amber_alert_channel',
-        title: 'EMERGENCY SYSTEM OVERRIDE',
-        body: 'Bringing app to foreground for critical alert...',
-        payload: {
-          'emergency': 'true',
-          'strategy': 'A',
-          'isAmberAlert': 'true',
-          'taskDescription': 'System Override',
-          'motivationalLine': 'Forcing app to foreground for emergency alert',
-          'bypassLockScreen': 'true',
-        },
-        // 🚨 CRITICAL: Full screen intent settings for locked screen
-        wakeUpScreen: true,
-        fullScreenIntent: true,
-        criticalAlert: true,
-        category: NotificationCategory.Alarm,
-        displayOnForeground: true,
-        displayOnBackground: true,
-        locked: false,
-        autoDismissible: true,
-        showWhen: false,
-        color: Colors.red,
-      ),
+  // 🚨 Check for amber alert trigger first
+  if (receivedNotification.payload != null && 
+      receivedNotification.payload!['triggerAmberAlert'] == 'true') {
+    print('🚨 AMBER ALERT TRIGGER DETECTED - DEPLOYING AMBER ALERT NOW!');
+    
+    final taskDescription = receivedNotification.payload?['taskDescription'] ?? 'Emergency Task';
+    final motivationalLine = receivedNotification.payload?['motivationalLine'] ?? 'Critical alert!';
+    final audioFilePath = receivedNotification.payload?['audioFilePath'] ?? '';
+    
+    await _deployAmberAlert(
+      taskDescription: taskDescription,
+      motivationalLine: motivationalLine,
+      audioFilePath: audioFilePath,
+      triggerId: receivedNotification.id!,
     );
     
-    print('✅ Foreground notification created successfully');
-    
-    // 🚨 STEP 2: Wait briefly for the notification to take effect
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // 🚨 STEP 3: Cancel the helper notification immediately
     try {
-      await AwesomeNotifications().cancel(999997);
-      print('✅ Helper notification cleaned up');
+      await AwesomeNotifications().cancel(receivedNotification.id!);
+      print('🚨 Trigger notification hidden - amber alert deployed');
     } catch (e) {
-      print('⚠️ Could not clean up helper notification: $e');
+      print('⚠️ Could not hide trigger notification: $e');
     }
     
-  } catch (e) {
-    print('❌ Error forcing app to foreground: $e');
-    rethrow;
+    return;
   }
-}
-
-  // ===== AUDIO HANDLING =====
-  Future<void> _playEmergencyAudio(String audioFilePath, bool forceOverrideSilent) async {
-    print('🎵 Playing emergency audio: $audioFilePath');
+  
+  // 🚨 CRITICAL FIX: Handle amber alerts - ONLY STRATEGY A HIJACKS SCREEN
+  if (receivedNotification.channelKey == 'amber_alert_channel') {
+    print('🚨 AMBER ALERT DISPLAYED - CHECKING FOR AUTO-HIJACK...');
     
-    try {
-      final player = AudioPlayer();
+    final isEmergencyAlert = receivedNotification.payload?['emergency'] == 'true';
+    final strategy = receivedNotification.payload?['strategy'];
+    
+    print('🔍 Emergency: $isEmergencyAlert, Strategy: $strategy');
+    
+    // 🎯 ONLY STRATEGY A TRIGGERS SCREEN HIJACKING
+    if (isEmergencyAlert && strategy == 'A') {
+      print('🚨 AMBER ALERT STRATEGY A - HIJACKING SCREEN AUTOMATICALLY');
+      print('🚨 AUTO-LAUNCHING FULL SCREEN ALERT NOW!');
       
-      if (forceOverrideSilent) {
-        print('🔊 Force override silent mode enabled');
+      // 🚨 ADD SHORT DELAY TO ENSURE NOTIFICATION IS VISIBLE
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      NotificationManager.instance._showLockScreenBypassAlert(
+        title: receivedNotification.title ?? '🚨 EMERGENCY ALERT 🚨',
+        message: receivedNotification.payload?['motivationalLine'] ?? 'Critical motivational emergency requires your attention!',
+        taskDescription: receivedNotification.payload?['taskDescription'],
+        payload: receivedNotification.payload,
+        audioPath: receivedNotification.payload?['audioFilePath'],
+      );
+      
+    } else {
+      print('🚨 AMBER ALERT - Non-emergency or unrecognized strategy: $strategy');
+      
+      try {
+        HapticFeedback.lightImpact();
+      } catch (e) {
+        print('⚠️ Error with amber alert haptic: $e');
       }
-      
-      await player.setFilePath(audioFilePath);
-      await player.setVolume(1.0);
-      await player.play();
-      
-      print('✅ Emergency audio playback started');
-      
-    } catch (e) {
-      print('❌ Error playing emergency audio: $e');
     }
+    
+    // 🚨 CRITICAL: RETURN EARLY - DO NOT PROCESS ANY OTHER LOGIC FOR AMBER ALERTS
+    return;
   }
+  
+  // 🔔 Handle normal notifications (non-amber alerts)
+  print('🔔 Normal notification displayed: ${receivedNotification.title}');
+}
 
   // ===== UTILITY METHODS =====
   Future<bool> verifyAudioFile(String audioFilePath) async {

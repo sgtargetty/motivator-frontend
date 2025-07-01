@@ -675,7 +675,10 @@ static Future<void> createFullScreenIntentNotification(BuildContext context) asy
         notificationLayout: NotificationLayout.BigText,
         category: NotificationCategory.Alarm,
         wakeUpScreen: true,
-        fullScreenIntent: true,
+        
+        // 🚨 CRITICAL FIX: Remove fullScreenIntent to prevent app opening
+        // fullScreenIntent: true,  // ❌ THIS OPENS THE APP - REMOVE IT
+        
         criticalAlert: true,
         displayOnForeground: true,
         displayOnBackground: true,
@@ -698,19 +701,9 @@ static Future<void> createFullScreenIntentNotification(BuildContext context) asy
           'bypassLockScreen': 'true',
         },
       ),
-      // 🚨 ACTION BUTTONS
-      actionButtons: [
-        NotificationActionButton(
-          key: 'OPEN_EMERGENCY',
-          label: 'OPEN EMERGENCY ALERT',
-          actionType: ActionType.Default,
-          requireInputText: false,
-          autoDismissible: true,
-        ),
-      ],
     );
     
-    print("✅ Full-screen intent notification created");
+    print("✅ Full-screen intent notification created (without fullScreenIntent)");
     
   } catch (e) {
     print("❌ Error creating full-screen intent notification: $e");
