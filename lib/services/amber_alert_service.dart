@@ -599,24 +599,24 @@ class AmberAlertService {
 
   // 🚨 COMBINED TEST: Only Strategy A 
   static Future<void> testAllAmberStrategies(BuildContext context) async {
-    print("🚨 TESTING STRATEGY A ONLY...");
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🚨 Launching STRATEGY A ONLY in 3 seconds...'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-    
-    // Wait 3 seconds, then launch only Strategy A
-    await Future.delayed(const Duration(seconds: 3));
-    
-    // Strategy 1: Enhanced notification (ONLY THIS ONE)
-    await createFullScreenIntentNotification(context);
-    
-    print("🚨 Strategy A only deployed for testing!");
-  }
+  print("🚨 TESTING STRATEGY A ONLY...");
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('🚨 Launching STRATEGY A ONLY in 3 seconds...'),
+      backgroundColor: Colors.red,
+      duration: Duration(seconds: 3),
+    ),
+  );
+  
+  // Wait 3 seconds, then launch only Strategy A
+  await Future.delayed(const Duration(seconds: 3));
+  
+  // Strategy 1: Enhanced notification (ONLY THIS ONE)
+  await createFullScreenIntentNotification(context);
+  
+  print("🚨 Strategy A only deployed for testing!");
+}
 
   // 🚨 ULTIMATE TEST: All permissions + Strategy A
   static Future<void> testTrueFullScreenAmberAlert(BuildContext context) async {
@@ -657,62 +657,65 @@ class AmberAlertService {
   }
 
   // 🚨 Strategy A: Enhanced Full Screen Intent Notification
-  static Future<void> createFullScreenIntentNotification(BuildContext context) async {
-    print("🚨 Creating enhanced full-screen intent notification...");
-    
-    try {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: 991,
-          channelKey: 'amber_alert_channel',
-          
-          // 🚨 EMERGENCY STYLING
-          title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
-          body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
-          summary: 'EMERGENCY ALERT SYSTEM',
-          
-          // 🚨 MAXIMUM VISIBILITY SETTINGS
-          notificationLayout: NotificationLayout.BigText,
-          category: NotificationCategory.Alarm,
-          
-          // 🚨 FULL SCREEN SETTINGS
-          wakeUpScreen: true,
-          fullScreenIntent: true,
-          criticalAlert: true,
-          
-          // 🚨 PERSISTENCE SETTINGS
-          locked: false, // Allow dismissal for testing
-          autoDismissible: false,
-          
-          // 🚨 VISIBILITY FLAGS
-          showWhen: true,
-          displayOnForeground: true,
-          displayOnBackground: true,
-          
-          // 🚨 VISUAL IMPACT
-          color: Colors.red,
-          backgroundColor: Colors.red,
+  // ===== VERIFY YOUR createFullScreenIntentNotification METHOD HAS THIS PAYLOAD =====
+
+static Future<void> createFullScreenIntentNotification(BuildContext context) async {
+  print("🚨 Creating enhanced full-screen intent notification...");
+  
+  try {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 991,
+        channelKey: 'amber_alert_channel',
+        
+        // 🚨 EMERGENCY STYLING
+        title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
+        body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
+        summary: 'EMERGENCY ALERT SYSTEM',
+        notificationLayout: NotificationLayout.BigText,
+        category: NotificationCategory.Alarm,
+        wakeUpScreen: true,
+        fullScreenIntent: true,
+        criticalAlert: true,
+        displayOnForeground: true,
+        displayOnBackground: true,
+        locked: false,
+        autoDismissible: false,
+        showWhen: true,
+        color: Colors.red,
+        backgroundColor: Colors.red,
+        
+        // 🚨 CRITICAL PAYLOAD - MUST MATCH EXACTLY
+        payload: {
+          'alertType': 'full_screen_intent',
+          'emergency': 'true',        // 🎯 CRITICAL - TRIGGERS AUTO-HIJACK
+          'priority': 'maximum',
+          'strategy': 'A',           // 🎯 CRITICAL - MUST BE 'A' FOR HIJACK
+          'isAmberAlert': 'true',
+          'taskDescription': 'Emergency amber alert test',
+          'motivationalLine': 'Critical alert requiring immediate attention!',
+          'audioFilePath': '',
+          'bypassLockScreen': 'true',
+        },
+      ),
+      // 🚨 ACTION BUTTONS
+      actionButtons: [
+        NotificationActionButton(
+          key: 'OPEN_EMERGENCY',
+          label: 'OPEN EMERGENCY ALERT',
           actionType: ActionType.Default,
-          
-          payload: {
-            'alertType': 'full_screen_intent',
-            'emergency': 'true',
-            'priority': 'maximum',
-            'strategy': 'A',         // ✅ ALREADY HAS THIS - WORKS!
-            'isAmberAlert': 'true',
-            'taskDescription': 'Full screen intent test',
-            'motivationalLine': 'This is a full screen intent amber alert test!',
-          },
+          requireInputText: false,
+          autoDismissible: true,
         ),
-        // No schedule = immediate
-      );
-      
-      print("✅ Enhanced full-screen intent notification created");
-      
-    } catch (e) {
-      print("❌ Error creating full-screen intent: $e");
-    }
+      ],
+    );
+    
+    print("✅ Full-screen intent notification created");
+    
+  } catch (e) {
+    print("❌ Error creating full-screen intent notification: $e");
   }
+}
 
   // 🚨 Strategy B: System Overlay Alert (Alternative approach)
   static Future<void> createSystemOverlayAlert(BuildContext context) async {
