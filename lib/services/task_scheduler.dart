@@ -23,7 +23,7 @@ class TaskScheduler {
     try {
       final scheduledTime = taskData['dateTime'] as DateTime;
       final timeUntilAlert = scheduledTime.difference(DateTime.now());
-      final taskId = taskData['description'].hashCode.abs().toString();
+      final taskId = (taskData['description']?.toString() ?? 'task').hashCode.abs().toString();
       
       print('⏰ Time until alert: ${timeUntilAlert.inSeconds} seconds');
       
@@ -36,7 +36,7 @@ class TaskScheduler {
         await _scheduleTraditionalAmberAlert(taskData);
       }
       
-      print('✅ Precision bypass system activated for: ${taskData['description']}');
+      print('✅ Precision bypass system activated for: ${taskData['description']?.toString() ?? 'Unknown Task'}');
       
     } catch (e) {
       print('❌ Error in precision bypass: $e');
@@ -68,11 +68,11 @@ class TaskScheduler {
         await NotificationManager.instance.createForcefulAmberAlert(
           id: DateTime.now().millisecondsSinceEpoch % 2147483647,
           title: '🚨 PRECISION EMERGENCY ALERT 🚨',
-          body: 'CRITICAL TASK: ${taskData['description']}\n\nThis is your precision-timed amber alert!',
+          body: 'CRITICAL TASK: ${taskData['description']?.toString() ?? 'Unknown Task'}\n\nThis is your precision-timed amber alert!',
           payload: {
-            'taskDescription': taskData['description'],
-            'motivationalLine': taskData['motivationalLine'] ?? 'Your precision alert is here!',
-            'audioFilePath': taskData['audioPath'] ?? '',
+            'taskDescription': taskData['description'].toString(),
+            'motivationalLine': (taskData['motivationalLine'] ?? 'Your precision alert is here!').toString(),
+            'audioFilePath': (taskData['audioPath'] ?? '').toString(),
             'emergency': 'true',
             'strategy': 'A',
             'isAmberAlert': 'true',
@@ -109,9 +109,9 @@ class TaskScheduler {
         id: DateTime.now().millisecondsSinceEpoch % 2147483647,
         channelKey: 'amber_alert_channel',
         title: '🚨 SCHEDULED EMERGENCY ALERT 🚨',
-        body: 'CRITICAL TASK: ${taskData['description']}\n\n$motivationalLine',
+        body: 'CRITICAL TASK: ${taskData['description']?.toString() ?? 'Unknown Task'}\n\n$motivationalLine',
         payload: {
-          'taskDescription': taskData['description'],
+          'taskDescription': taskData['description'].toString(),
           'motivationalLine': motivationalLine,
           'audioFilePath': audioPath,
           'emergency': 'true',
@@ -144,11 +144,11 @@ class TaskScheduler {
         id: DateTime.now().millisecondsSinceEpoch % 2147483647,
         channelKey: 'motivator_reminders',
         title: '⚠️ FALLBACK ALERT',
-        body: 'Task: ${taskData['description']}\n\nFallback notification deployed.',
+        body: 'Task: ${taskData['description']?.toString() ?? 'Unknown Task'}\n\nFallback notification deployed.',
         payload: {
-          'taskDescription': taskData['description'],
-          'motivationalLine': taskData['motivationalLine'] ?? 'Fallback alert',
-          'audioFilePath': taskData['audioPath'] ?? '',
+          'taskDescription': taskData['description'].toString(),
+          'motivationalLine': (taskData['motivationalLine'] ?? 'Fallback alert').toString(),
+          'audioFilePath': (taskData['audioPath'] ?? '').toString(),
           'fallbackMode': 'true',
         },
         wakeUpScreen: true,
@@ -160,61 +160,33 @@ class TaskScheduler {
     }
   }
 
-  // ===== REGULAR TASK SCHEDULING =====
+  // ========== ORIGINAL SCHEDULING METHODS ==========
   
-  Future<void> scheduleTask({
-    required String taskDescription,
-    required String motivationalLine,
-    required DateTime dateTime,
-    required bool isAmberAlert,
-    String? audioPath,
-    bool isRecurring = false,
-    String recurringType = 'once',
-    List<int> selectedWeekdays = const [],
-    DateTime? endDate,
-    bool neverEnds = false,
-  }) async {
-    print('📅 Scheduling task: $taskDescription');
-    print('🚨 Amber Alert: $isAmberAlert');
-    print('⏰ Scheduled for: $dateTime');
+  // Main task scheduling method - FIXED to accept Map parameter like task_dialog.dart expects
+  Future<void> scheduleTask(Map<String, dynamic> taskData) async {
+    final isRecurring = taskData['isRecurring'] ?? false;
+    final isAmberAlert = taskData['isAmberAlert'] == true;
+    
+    print('📅 Scheduling ${isAmberAlert ? 'AMBER ALERT' : 'regular'} task: ${taskData['description']?.toString() ?? 'Unknown Task'}');
+    print('🔄 Recurring: $isRecurring');
     
     try {
-      String? audioFilePath;
+      // Generate motivational line and audio
+      final motivationalLine = await _generateMotivationalLine(taskData);
+      final audioFilePath = await _generateAndSaveAudio(taskData, motivationalLine);
       
-      // Generate audio if not provided
-      if (audioPath == null || audioPath.isEmpty) {
-        try {
-          final audioBytes = await _api.generateAudio(motivationalLine);
-          audioFilePath = await _saveAudioToDevice(audioBytes, taskDescription);
-        } catch (e) {
-          print('⚠️ Audio generation failed: $e');
-          audioFilePath = '';
-        }
-      } else {
-        audioFilePath = audioPath;
+      // 🎯 NEW: Use precision bypass for amber alerts
+      if (isAmberAlert && !isRecurring) {
+        print('🎯 Using precision bypass for amber alert');
+        await scheduleAmberAlertWithPrecisionBypass(taskData);
+        return;
       }
       
+      // Use traditional scheduling for regular notifications and recurring amber alerts
       if (isRecurring) {
-        await _scheduleRecurringNotifications(
-          taskDescription: taskDescription,
-          motivationalLine: motivationalLine,
-          startTime: dateTime,
-          recurringType: recurringType,
-          selectedWeekdays: selectedWeekdays,
-          endDate: endDate,
-          neverEnds: neverEnds,
-          isAmberAlert: isAmberAlert,
-          audioFilePath: audioFilePath,
-        );
+        await _scheduleRecurringNotifications(taskData, motivationalLine, audioFilePath);
       } else {
-        // Single notification
-        await _scheduleSingleNotification(
-          taskDescription: taskDescription,
-          motivationalLine: motivationalLine,
-          dateTime: dateTime,
-          isAmberAlert: isAmberAlert,
-          audioFilePath: audioFilePath,
-        );
+        await _scheduleSingleNotification(taskData, motivationalLine, audioFilePath);
       }
       
       print('✅ Task scheduled successfully');
@@ -225,57 +197,106 @@ class TaskScheduler {
     }
   }
   
-  Future<void> _scheduleSingleNotification({
-    required String taskDescription,
-    required String motivationalLine,
-    required DateTime dateTime,
-    required bool isAmberAlert,
-    required String audioFilePath,
-  }) async {
-    final payload = {
-      'taskDescription': taskDescription,
-      'motivationalLine': motivationalLine,
-      'audioFilePath': audioFilePath,
-      'forceOverrideSilent': isAmberAlert.toString(),
-    };
-    
-    if (isAmberAlert) {
-      payload.addAll({
-        'emergency': 'true',
-        'strategy': 'A',
-        'isAmberAlert': 'true',
-        'bypassLockScreen': 'true',
-      });
+  // Generate motivational line
+  Future<String> _generateMotivationalLine(Map<String, dynamic> taskData) async {
+    try {
+      return await _api.generateLine(
+        taskData['description']?.toString() ?? 'Complete your task!',
+        toneStyle: taskData['toneStyle']?.toString() ?? 'Balanced',
+      );
+    } catch (e) {
+      print('⚠️ Error generating motivational line: $e');
+      return 'You can do this! Time to tackle ${taskData['description']?.toString() ?? 'your task'}!';
     }
-    
-    await NotificationManager.instance.createNotification(
-      id: DateTime.now().millisecondsSinceEpoch % 2147483647,
-      channelKey: isAmberAlert ? 'amber_alert_channel' : 'motivator_reminders',
-      title: isAmberAlert ? '🚨 EMERGENCY ALERT 🚨' : '🎯 Motivational Reminder',
-      body: isAmberAlert 
-        ? 'CRITICAL TASK: $taskDescription\n\n$motivationalLine'
-        : '$taskDescription\n\n$motivationalLine',
-      payload: payload,
-      schedule: NotificationCalendar.fromDate(date: dateTime),
-      wakeUpScreen: isAmberAlert,
-      fullScreenIntent: isAmberAlert,
-      criticalAlert: isAmberAlert,
-      category: isAmberAlert ? NotificationCategory.Alarm : NotificationCategory.Reminder,
-      color: isAmberAlert ? Colors.red : Colors.teal,
-    );
   }
   
-  Future<void> _scheduleRecurringNotifications({
-    required String taskDescription,
-    required String motivationalLine,
-    required DateTime startTime,
-    required String recurringType,
-    required List<int> selectedWeekdays,
-    DateTime? endDate,
-    required bool neverEnds,
-    required bool isAmberAlert,
-    required String audioFilePath,
-  }) async {
+  // Generate and save audio
+  Future<String> _generateAndSaveAudio(Map<String, dynamic> taskData, String motivationalLine) async {
+    try {
+      if (taskData['backendVoiceStyle'] != null || taskData['voiceStyle'] != null) {
+        print('🎵 Generating voice audio...');
+        
+        final voiceStyle = taskData['backendVoiceStyle'] ?? taskData['voiceStyle'];
+        final audioBytes = await _api.generateVoice(
+          motivationalLine,
+          voiceStyle: voiceStyle,
+        );
+        
+        return await _saveAudioToDevice(audioBytes, taskData['description']?.toString() ?? 'unknown_task');
+      }
+      
+      return '';
+    } catch (e) {
+      print('⚠️ Error generating audio: $e');
+      return '';
+    }
+  }
+  
+  // Single notification scheduling
+  Future<void> _scheduleSingleNotification(
+    Map<String, dynamic> taskData, 
+    String motivationalLine, 
+    String audioFilePath
+  ) async {
+    final scheduledTime = taskData['dateTime'] as DateTime;
+    final isAmberAlert = taskData['isAmberAlert'] == true;
+    final notificationId = (taskData['description']?.toString() ?? 'task').hashCode.abs() % 2147483647;
+    
+    print('🔔 Scheduling ${isAmberAlert ? 'AMBER ALERT' : 'regular'} notification for: $scheduledTime');
+    
+    final channelKey = isAmberAlert ? 'amber_alert_channel' : 'motivator_reminders';
+    final schedule = NotificationCalendar.fromDate(date: scheduledTime);
+    
+    try {
+      await NotificationManager.instance.createNotification(
+        id: notificationId,
+        channelKey: channelKey,
+        title: isAmberAlert ? '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨' : '🎯 Time for Action!',
+        body: taskData['description']?.toString() ?? 'Motivational Reminder',
+        payload: {
+          'taskDescription': (taskData['description'] ?? 'Unknown Task').toString(),
+          'motivationalLine': motivationalLine,
+          'audioFilePath': audioFilePath,
+          'voiceStyle': (taskData['backendVoiceStyle'] ?? taskData['voiceStyle'] ?? 'Default').toString(),
+          'toneStyle': (taskData['toneStyle'] ?? 'Balanced').toString(),
+          'isRecurring': 'false',
+          'isAmberAlert': isAmberAlert.toString(),
+          'forceOverrideSilent': (taskData['forceOverrideSilent'] ?? false).toString(),
+          ...(isAmberAlert ? {
+            'emergency': 'true',
+            'strategy': 'A',
+            'bypassLockScreen': 'true',
+          } : {}),
+        },
+        schedule: schedule,
+        layout: NotificationLayout.Default,
+        wakeUpScreen: isAmberAlert,
+        fullScreenIntent: isAmberAlert,
+        criticalAlert: isAmberAlert,
+        category: isAmberAlert ? NotificationCategory.Alarm : NotificationCategory.Reminder,
+        color: isAmberAlert ? Colors.red : Colors.teal,
+      );
+      
+      print('✅ ${isAmberAlert ? 'AMBER ALERT' : 'Regular'} notification scheduled successfully');
+      
+    } catch (e) {
+      print('❌ Error scheduling notification: $e');
+      rethrow;
+    }
+  }
+  
+  Future<void> _scheduleRecurringNotifications(
+    Map<String, dynamic> taskData,
+    String motivationalLine,
+    String audioFilePath,
+  ) async {
+    final isAmberAlert = taskData['isAmberAlert'] == true;
+    final recurringType = taskData['recurringType'] ?? 'daily';
+    final selectedWeekdays = taskData['selectedWeekdays'] ?? <int>[];
+    final endDate = taskData['recurringEndDate'];
+    final neverEnds = taskData['neverEnds'] ?? false;
+    final startTime = taskData['dateTime'] as DateTime;
+    
     List<DateTime> scheduleDates = [];
     
     switch (recurringType) {
@@ -295,8 +316,8 @@ class TaskScheduler {
     print('📅 Scheduling ${scheduleDates.length} recurring notifications');
     
     for (final date in scheduleDates) {
-      final payload = {
-        'taskDescription': taskDescription,
+      final payload = <String, String>{
+        'taskDescription': taskData['description'].toString(),
         'motivationalLine': motivationalLine,
         'audioFilePath': audioFilePath,
         'forceOverrideSilent': isAmberAlert.toString(),
@@ -317,8 +338,8 @@ class TaskScheduler {
         channelKey: isAmberAlert ? 'amber_alert_channel' : 'motivator_reminders',
         title: isAmberAlert ? '🚨 EMERGENCY ALERT 🚨' : '🎯 Motivational Reminder',
         body: isAmberAlert 
-          ? 'CRITICAL TASK: $taskDescription\n\n$motivationalLine'
-          : '$taskDescription\n\n$motivationalLine',
+          ? 'CRITICAL TASK: ${taskData['description']?.toString() ?? 'Unknown Task'}\n\n$motivationalLine'
+          : '${taskData['description']?.toString() ?? 'Unknown Task'}\n\n$motivationalLine',
         payload: payload,
         schedule: NotificationCalendar.fromDate(date: date),
         wakeUpScreen: isAmberAlert,
