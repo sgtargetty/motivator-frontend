@@ -600,39 +600,55 @@ static Future<void> _deployAmberAlert({
   }
 }
 
-  // 🚨 Show Lock Screen Bypass Amber Alert
+  // Replace your _showLockScreenBypassAlert method in notification_manager.dart with this:
+
 void _showLockScreenBypassAlert({
   required String title,
   required String message,
   String? taskDescription,
   Map<String, String?>? payload,
   String? audioPath,
-}) {
+}) async {
   print('🚨 _showLockScreenBypassAlert called with title: $title');
   
-  final context = _navigatorKey?.currentContext;
-  if (context == null) {
-    print('❌ No context available for amber alert navigation');
+  if (_isAmberAlertActive) {
+    print('🔄 Amber alert already active - skipping duplicate');
     return;
   }
   
-  final currentRoute = ModalRoute.of(context);
-  if (currentRoute?.settings.name == '/emergency_alert') {
-    print('⚠️ Emergency alert already showing, ignoring duplicate');
-    return;
-  }
+  _isAmberAlertActive = true;
   
   try {
-    print('✅ Context found - attempting EMERGENCY navigation');
+    // 🚨 STEP 1: Force app to foreground using native Android intent
+    print('🚨 STEP 1: Forcing app to foreground...');
+    await _forceAppToForegroundNative();
     
-    _isAmberAlertActive = true;
+    // 🚨 STEP 2: Small delay to let app come to foreground
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // 🚨 STEP 3: Now attempt screen hijacking
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      print('❌ No context available for amber alert navigation after foreground');
+      _isAmberAlertActive = false;
+      return;
+    }
+    
+    final currentRoute = ModalRoute.of(context);
+    if (currentRoute?.settings.name == '/emergency_alert') {
+      print('⚠️ Emergency alert already showing, ignoring duplicate');
+      _isAmberAlertActive = false;
+      return;
+    }
+    
+    print('🚨 SCREEN HIJACK: Launching amber alert screen');
     
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => AmberAlertScreen(
+        pageBuilder: (context, animation, secondaryAnimation) => _buildEmergencyOverlay(
           title: title,
           message: message,
-          taskDescription: taskDescription ?? 'Emergency Alert',
+          taskDescription: taskDescription,
           payload: payload,
           audioPath: audioPath,
         ),

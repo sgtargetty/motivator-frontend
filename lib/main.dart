@@ -268,7 +268,8 @@ class MotivatorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       routes: {
         '/home': (context) => const MotivatorHome(),
-        '/settings': (context) => const SettingsScreen(),
+        // ✅ REMOVED: '/settings': (context) => const SettingsScreen(), 
+        // Settings navigation is handled properly in MotivatorHome with Navigator.push
         '/amber-alert': (context) => const AmberAlertScreen(),
       },
       // 🚨 Global route observer for debugging
