@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+// 🔥 REMOVED: vibration import - using haptic only
 import 'dart:async';
 
 class AmberAlertService {
@@ -12,12 +13,12 @@ class AmberAlertService {
     print("🧪 Testing basic notification WITHOUT payload...");
     
     final now = DateTime.now();
-    final scheduledTime = now.add(const Duration(seconds: 10)); // Reduced to 10 seconds for testing
+    final scheduledTime = now.add(const Duration(seconds: 10));
     
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: 999,
-        channelKey: 'test_channel', // Using basic channel
+        channelKey: 'test_channel',
         title: '🧪 Basic Test',
         body: 'Simple test - no payload',
         notificationLayout: NotificationLayout.Default,
@@ -44,7 +45,7 @@ class AmberAlertService {
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: 998,
-        channelKey: 'motivator_reminders', // Using enhanced channel
+        channelKey: 'motivator_reminders',
         title: '🧪 Enhanced Test',
         body: 'Enhanced test - basic payload',
         notificationLayout: NotificationLayout.Default,
@@ -97,6 +98,133 @@ class AmberAlertService {
         backgroundColor: Colors.orange,
       ),
     );
+  }
+
+  // ===== ENHANCED HAPTIC FEEDBACK TESTS =====
+  
+  // 🔥 NEW: Test Enhanced Haptic Patterns (No Vibration Package)
+  static Future<void> testEnhancedVibrationOnly(BuildContext context) async {
+    print("🚨 Testing ENHANCED HAPTIC PATTERNS (No vibration package)...");
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🚨 Testing enhanced haptic feedback patterns...'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    
+    try {
+      // 🚨 SOS Pattern with haptic: 3 short, 3 long, 3 short
+      print('🚨 Playing SOS haptic pattern...');
+      
+      // 3 short
+      for (int i = 0; i < 3; i++) {
+        HapticFeedback.selectionClick();
+        await Future.delayed(Duration(milliseconds: 150));
+      }
+      await Future.delayed(Duration(milliseconds: 300));
+      
+      // 3 long (using heavy impact to simulate longer vibration)
+      for (int i = 0; i < 3; i++) {
+        HapticFeedback.heavyImpact();
+        await Future.delayed(Duration(milliseconds: 100));
+        HapticFeedback.heavyImpact();
+        await Future.delayed(Duration(milliseconds: 200));
+      }
+      await Future.delayed(Duration(milliseconds: 300));
+      
+      // 3 short
+      for (int i = 0; i < 3; i++) {
+        HapticFeedback.selectionClick();
+        await Future.delayed(Duration(milliseconds: 150));
+      }
+      
+      await Future.delayed(Duration(milliseconds: 500));
+      
+      // Emergency burst pattern
+      print('🚨 Playing emergency burst haptic pattern...');
+      for (int i = 0; i < 8; i++) {
+        HapticFeedback.heavyImpact();
+        await Future.delayed(Duration(milliseconds: 100));
+      }
+      
+      await Future.delayed(Duration(milliseconds: 300));
+      
+      // Final emergency haptic
+      print('🚨 Playing final emergency haptic...');
+      for (int i = 0; i < 5; i++) {
+        HapticFeedback.heavyImpact();
+        await Future.delayed(Duration(milliseconds: 200));
+      }
+      
+      print('✅ Enhanced haptic feedback test completed successfully!');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Enhanced haptic feedback patterns completed!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+    } catch (e) {
+      print('❌ Haptic feedback test failed: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Haptic feedback failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // ===== ENHANCED COMBINATION TESTS =====
+
+  // 🔥 NEW: Test All Amber Strategies WITH HAPTIC
+  static Future<void> testAllAmberStrategiesWithVibration(BuildContext context) async {
+    print("🚨 TESTING STRATEGY A WITH ENHANCED HAPTIC...");
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🚨 Launching STRATEGY A with enhanced haptic in 3 seconds...'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
+    
+    // Wait 3 seconds, then launch enhanced version
+    await Future.delayed(const Duration(seconds: 3));
+    
+    // Enhanced haptic first
+    await testEnhancedVibrationOnly(context);
+    
+    // Wait for haptic to complete
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // Then launch Strategy A with haptic integration
+    await createFullScreenIntentNotification(context);
+    
+    print("🚨 Strategy A with enhanced haptic deployed!");
+  }
+
+  // 🔥 NEW: Ultimate test with haptic
+  static Future<void> testTrueFullScreenAmberAlertWithVibration(BuildContext context) async {
+    print("🚨 Testing ULTIMATE FULL SCREEN amber alert WITH HAPTIC...");
+    
+    // 1. Request permissions
+    await requestFullScreenPermissions(context);
+    
+    // 2. Enhanced haptic sequence
+    await testEnhancedVibrationOnly(context);
+    
+    // 3. Wait for haptic to complete
+    await Future.delayed(const Duration(seconds: 3));
+    
+    // 4. Full screen intent with haptic
+    await createFullScreenIntentNotification(context);
+    
+    print("🚨 ULTIMATE amber alert with enhanced haptic completed!");
   }
 
   // ===== AMBER ALERT TESTS =====
@@ -176,6 +304,7 @@ class AmberAlertService {
             'isAmberAlert': 'true',
             'testMode': 'full_screen',
             'emergency': 'true', // 🚨 KEY: This triggers auto-display
+            'strategy': 'A',     // 🔥 FIXED: Added missing strategy A!
           },
         ),
         
@@ -229,7 +358,7 @@ class AmberAlertService {
           id: 994,
           channelKey: 'amber_alert_channel',
           title: '🚨 IMMEDIATE AMBER ALERT',
-          body: 'This should appear instantly!',
+          body: 'This should hijack the screen instantly!',
           category: NotificationCategory.Alarm,
           wakeUpScreen: true,
           fullScreenIntent: true,
@@ -237,7 +366,8 @@ class AmberAlertService {
           displayOnForeground: true,
           displayOnBackground: true,
           payload: {
-            'emergency': 'true', // 🚨 IMPORTANT: Include this
+            'emergency': 'true',     // 🚨 IMPORTANT: Include this  
+            'strategy': 'A',         // 🔥 FIXED: Added missing strategy A!
             'isAmberAlert': 'true',
             'taskDescription': 'Immediate amber alert test',
             'motivationalLine': 'This is an immediate amber alert test!',
@@ -246,7 +376,7 @@ class AmberAlertService {
         // No schedule = immediate delivery
       );
       
-      print("✅ Immediate amber alert created");
+      print("✅ Immediate amber alert created - should hijack NOW");
       
     } catch (e) {
       print("❌ Error creating immediate amber alert: $e");
@@ -273,8 +403,9 @@ class AmberAlertService {
           displayOnBackground: true,
           payload: {
             'taskDescription': 'IMMEDIATE TEST: Auto-hijack verification',
-            'motivationalLine': 'This alert hijacked your screen immediately with no delay!',
-            'emergency': 'true', // 🚨 KEY: Triggers auto-display
+            'motivationalLine': 'This alert hijacked your screen immediately!',
+            'emergency': 'true',     // 🚨 KEY: Triggers auto-display
+            'strategy': 'A',         // 🔥 FIXED: Added missing strategy A!
             'isAmberAlert': 'true',
             'testMode': 'immediate_hijack',
           },
@@ -282,7 +413,7 @@ class AmberAlertService {
         // No schedule = immediate delivery and auto-hijack
       );
       
-      print("✅ Immediate auto-hijack alert created - should appear NOW");
+      print("✅ Immediate auto-hijack alert created - should hijack NOW");
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -333,104 +464,161 @@ class AmberAlertService {
             'alertType': 'native_alarm',
             'priority': 'maximum',
             'override': 'all_settings',
-            'emergency': 'true', // 🚨 IMPORTANT: Include this
+            'emergency': 'true',     // 🚨 IMPORTANT: Include this
+            'strategy': 'A',         // 🔥 FIXED: Added missing strategy A!
             'isAmberAlert': 'true',
           },
         ),
         // No schedule = immediate
       );
       
-      print("✅ Native alarm alert created immediately");
+      print("✅ Native alarm alert created - should hijack immediately");
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('⚠️ Native alarm alert triggered immediately!'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
         ),
       );
       
     } catch (e) {
-      print("❌ Error creating native alarm: $e");
+      print("❌ Error creating native alarm alert: $e");
     }
   }
 
-  // 🆕 ULTIMATE TEST: Continuous alarm-style notification
-  static Future<void> testContinuousAlarm(BuildContext context) async {
-    print("🚨 Testing CONTINUOUS ALARM style notification...");
+  // ===== REST OF THE METHODS (PERMISSIONS, DIAGNOSTICS, ETC.) =====
+  
+  static Future<void> checkAllPermissions(BuildContext context) async {
+    print("🔐 Checking all permissions...");
+    
+    final notifications = await AwesomeNotifications().isNotificationAllowed();
+    final overlay = await Permission.systemAlertWindow.status;
+    final battery = await Permission.ignoreBatteryOptimizations.status;
+    
+    print("🔐 Notifications: $notifications");
+    print("🔐 System overlay: $overlay");
+    print("🔐 Battery optimization: $battery");
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🔐 Permissions - Notifications: $notifications, Overlay: $overlay, Battery: $battery'),
+        backgroundColor: Colors.indigo,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  static Future<void> checkBatteryOptimization(BuildContext context) async {
+    print("🔋 Checking battery optimization...");
     
     try {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: 992,
-          channelKey: 'amber_alert_channel',
-          
-          // 🚨 CONTINUOUS ALARM
-          title: '🔴 CONTINUOUS EMERGENCY ALERT 🔴',
-          body: 'This alert will persist until you respond!\nSwipe to dismiss.',
-          
-          // 🚨 PERSISTENT ALARM SETTINGS
-          category: NotificationCategory.Alarm,
-          notificationLayout: NotificationLayout.BigText,
-          wakeUpScreen: true,
-          fullScreenIntent: true,
-          criticalAlert: true,
-          
-          // 🚨 PERSISTENT FLAGS
-          locked: true, // Harder to dismiss
-          autoDismissible: false,
-          showWhen: true,
-          
-          // 🚨 MAXIMUM VISUAL IMPACT
-          color: Colors.red,
-          
-          // 🚨 ACTION BUTTONS FOR RESPONSE
-          actionType: ActionType.Default,
-          
-          payload: {
-            'alertType': 'continuous_alarm',
-            'requires_response': 'true',
-            'emergency_level': 'maximum',
-            'emergency': 'true', // 🚨 IMPORTANT: Include this
-            'isAmberAlert': 'true',
-            'strategy': 'C', // Add strategy field
-          },
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      print("🔋 Battery optimization status: $status");
+      
+      if (status.isDenied) {
+        final granted = await Permission.ignoreBatteryOptimizations.request();
+        print("🔋 Battery optimization permission result: $granted");
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔋 Battery optimization: $status'),
+          backgroundColor: Colors.teal,
         ),
-        // Immediate delivery
       );
       
-      print("✅ Continuous alarm created - should be persistent");
+    } catch (e) {
+      print("❌ Error checking battery optimization: $e");
+    }
+  }
+
+  static Future<void> checkScheduledNotifications(BuildContext context) async {
+    print("📋 Checking scheduled notifications...");
+    
+    try {
+      final notifications = await AwesomeNotifications().listScheduledNotifications();
+      print("📋 Found ${notifications.length} scheduled notifications");
       
-      // Start vibration pattern for continuous alarm
-      startContinuousVibration();
+      for (final notification in notifications) {
+        print("📋 ID: ${notification.content?.id}, Title: ${notification.content?.title}");
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('📋 Found ${notifications.length} scheduled notifications'),
+          backgroundColor: Colors.purple,
+        ),
+      );
+      
+    } catch (e) {
+      print("❌ Error checking scheduled notifications: $e");
+    }
+  }
+
+  static Future<void> openDeviceSettings(BuildContext context) async {
+    print("⚙️ Opening device settings...");
+    
+    try {
+      await openAppSettings();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🔴 Continuous alarm with vibration started!'),
-          backgroundColor: Colors.red,
+          content: Text('⚙️ Device settings opened'),
+          backgroundColor: Colors.grey,
         ),
       );
       
     } catch (e) {
-      print("❌ Error creating continuous alarm: $e");
+      print("❌ Error opening settings: $e");
     }
   }
 
-  // 🆕 Helper: Continuous vibration for true emergency feel
-  static void startContinuousVibration() {
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      HapticFeedback.heavyImpact();
-      
-      // Stop after 10 vibrations (for testing)
-      if (timer.tick >= 10) {
-        timer.cancel();
-        print("🚨 Continuous vibration stopped after 10 cycles");
-      }
-    });
+  static void showPermissionInstructions(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🔐 Enable these permissions for amber alerts:'),
+            const Text('1. "Display over other apps"'),
+            const Text('2. "Ignore battery optimization"'),
+            const Text('3. "Critical alerts" in notification settings'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => openDeviceSettings(context),
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 10),
+      ),
+    );
   }
 
-  // ===== ULTIMATE AMBER ALERT TESTS =====
+  // 🚨 COMBINED TEST: Only Strategy A 
+  static Future<void> testAllAmberStrategies(BuildContext context) async {
+    print("🚨 TESTING STRATEGY A ONLY...");
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🚨 Launching STRATEGY A ONLY in 3 seconds...'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
+    
+    // Wait 3 seconds, then launch only Strategy A
+    await Future.delayed(const Duration(seconds: 3));
+    
+    // Strategy 1: Enhanced notification (ONLY THIS ONE)
+    await createFullScreenIntentNotification(context);
+    
+    print("🚨 Strategy A only deployed for testing!");
+  }
 
-  // 🚨 ULTIMATE TEST: True Full Screen Amber Alert
+  // 🚨 ULTIMATE TEST: All permissions + Strategy A
   static Future<void> testTrueFullScreenAmberAlert(BuildContext context) async {
     print("🚨 Testing ULTIMATE FULL SCREEN amber alert...");
     
@@ -480,7 +668,7 @@ class AmberAlertService {
           
           // 🚨 EMERGENCY STYLING
           title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
-          body: 'CRITICAL ALERT: Your immediate attention is required!\n\nTap to respond to this emergency notification.',
+          body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
           summary: 'EMERGENCY ALERT SYSTEM',
           
           // 🚨 MAXIMUM VISIBILITY SETTINGS
@@ -510,7 +698,7 @@ class AmberAlertService {
             'alertType': 'full_screen_intent',
             'emergency': 'true',
             'priority': 'maximum',
-            'strategy': 'A',
+            'strategy': 'A',         // ✅ ALREADY HAS THIS - WORKS!
             'isAmberAlert': 'true',
             'taskDescription': 'Full screen intent test',
             'motivationalLine': 'This is a full screen intent amber alert test!',
@@ -573,11 +761,8 @@ class AmberAlertService {
         
         print("✅ System overlay alert created");
         
-        // Trigger continuous vibration for emergency feel
-        startEmergencyVibrationPattern();
-        
       } else {
-        print("⚠️ No overlay permission - showing permission request");
+        print("❌ System overlay permission not granted");
         showPermissionInstructions(context);
       }
       
@@ -586,161 +771,39 @@ class AmberAlertService {
     }
   }
 
-  // 🚨 Emergency vibration pattern (more intense)
-  static void startEmergencyVibrationPattern() {
-    print("🚨 Starting emergency vibration pattern...");
+  // 🔄 CONTINUOUS ALARM TEST
+  static Future<void> testContinuousAlarm(BuildContext context) async {
+    print("🚨 Testing CONTINUOUS ALARM...");
     
-    Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      HapticFeedback.heavyImpact();
-      
-      // Emergency pattern: 3 short bursts
-      Future.delayed(const Duration(milliseconds: 100), () {
-        HapticFeedback.heavyImpact();
-      });
-      Future.delayed(const Duration(milliseconds: 200), () {
-        HapticFeedback.heavyImpact();
-      });
-      
-      // Stop after 20 cycles (10 seconds)
-      if (timer.tick >= 20) {
-        timer.cancel();
-        print("🚨 Emergency vibration pattern completed");
-      }
-    });
-  }
-
-  // 📱 Show permission instructions to user
-  static void showPermissionInstructions(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '🚨 FULL SCREEN SETUP REQUIRED',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            const Text('For true amber alerts, enable:'),
-            const Text('1. "Display over other apps"'),
-            const Text('2. "Ignore battery optimization"'),
-            const Text('3. "Critical alerts" in notification settings'),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => openDeviceSettings(context),
-              child: const Text('Open Settings'),
-            ),
-          ],
+    try {
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 992,
+          channelKey: 'amber_alert_channel',
+          title: '🔴 CONTINUOUS EMERGENCY ALARM',
+          body: 'PERSISTENT ALERT\nThis will continue until acknowledged!',
+          category: NotificationCategory.Alarm,
+          notificationLayout: NotificationLayout.BigText,
+          wakeUpScreen: true,
+          fullScreenIntent: true,
+          criticalAlert: true,
+          locked: true,
+          autoDismissible: false,
+          color: Colors.red,
+          payload: {
+            'alertType': 'continuous_alarm',
+            'persistent': 'true',
+            'emergency': 'true',
+            'strategy': 'A',         // 🔥 FIXED: Added missing strategy A!
+            'isAmberAlert': 'true',
+          },
         ),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 10),
-      ),
-    );
-  }
-
-  // 🚨 COMBINED TEST: Only Strategy A (B & C Commented Out)
-  static Future<void> testAllAmberStrategies(BuildContext context) async {
-    print("🚨 TESTING STRATEGY A ONLY (B & C COMMENTED OUT)...");
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🚨 Launching STRATEGY A ONLY in 3 seconds...'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-    
-    // Wait 3 seconds, then launch only Strategy A
-    await Future.delayed(const Duration(seconds: 3));
-    
-    // Strategy 1: Enhanced notification (ONLY THIS ONE)
-    await createFullScreenIntentNotification(context);
-    
-    // 🧪 TEMPORARILY COMMENT OUT STRATEGIES B & C FOR TESTING
-    // // Strategy 2: Wait 1 second, then overlay
-    // await Future.delayed(const Duration(seconds: 1));
-    // await createSystemOverlayAlert(context);
-    
-    // // Strategy 3: Wait 1 second, then continuous
-    // await Future.delayed(const Duration(seconds: 1));
-    // await testContinuousAlarm(context);
-    
-    print("🚨 Strategy A only deployed for testing!");
-  }
-
-  // ===== PERMISSION AND DIAGNOSTIC FUNCTIONS =====
-
-  // 🔍 NEW: Check all permissions method
-  static Future<void> checkAllPermissions(BuildContext context) async {
-    print("🔍 Checking all permissions...");
-    
-    // Check basic notification permission
-    final notificationAllowed = await AwesomeNotifications().isNotificationAllowed();
-    print("📱 Basic notifications: $notificationAllowed");
-    
-    // Check individual permissions
-    try {
-      final permissions = [
-        Permission.notification,
-        Permission.systemAlertWindow,
-        Permission.ignoreBatteryOptimizations,
-        Permission.scheduleExactAlarm,
-      ];
+      );
       
-      for (final permission in permissions) {
-        final status = await permission.status;
-        print("🔐 ${permission.toString()}: ${status.toString()}");
-        
-        if (status.isDenied) {
-          print("⚠️ Requesting ${permission.toString()}...");
-          await permission.request();
-        }
-      }
-    } catch (e) {
-      print("⚠️ Error checking permissions: $e");
-    }
-  }
-
-  // 🔋 NEW: Check battery optimization
-  static Future<void> checkBatteryOptimization(BuildContext context) async {
-    try {
-      final batteryOptimized = await Permission.ignoreBatteryOptimizations.status;
-      print("🔋 Battery optimization status: $batteryOptimized");
+      print("✅ Continuous alarm created");
       
-      if (batteryOptimized.isDenied) {
-        print("⚠️ App may be battery optimized - requesting exemption");
-        await Permission.ignoreBatteryOptimizations.request();
-      }
     } catch (e) {
-      print("⚠️ Could not check battery optimization: $e");
-    }
-  }
-
-  // 📱 NEW: Open device settings for manual configuration
-  static Future<void> openDeviceSettings(BuildContext context) async {
-    try {
-      await AwesomeNotifications().showNotificationConfigPage();
-    } catch (e) {
-      print("Could not open notification settings: $e");
-    }
-  }
-
-  // 📊 NEW: Check notification status
-  static Future<void> checkScheduledNotifications(BuildContext context) async {
-    try {
-      final scheduledNotifications = await AwesomeNotifications().listScheduledNotifications();
-      print("📋 Scheduled notifications count: ${scheduledNotifications.length}");
-      
-      for (final notification in scheduledNotifications) {
-        print("📅 Scheduled: ID=${notification.content!.id}, Title=${notification.content!.title}");
-      }
-      
-      if (scheduledNotifications.isEmpty) {
-        print("⚠️ No notifications are scheduled!");
-      }
-    } catch (e) {
-      print("❌ Error checking scheduled notifications: $e");
+      print("❌ Error creating continuous alarm: $e");
     }
   }
 }
