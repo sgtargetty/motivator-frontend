@@ -601,64 +601,83 @@ static Future<void> _deployAmberAlert({
 }
 
   // 🚨 Show Lock Screen Bypass Amber Alert
-  void _showLockScreenBypassAlert({
-    required String title,
-    required String message,
-    String? taskDescription,
-    Map<String, String?>? payload,
-    String? audioPath,
-  }) async {
-    print('🚨 LOCK SCREEN BYPASS: Attempting to hijack screen for amber alert');
-    
-    if (_isAmberAlertActive) {
-      print('🔄 Amber alert already active - skipping duplicate');
-      return;
-    }
+void _showLockScreenBypassAlert({
+  required String title,
+  required String message,
+  String? taskDescription,
+  Map<String, String?>? payload,
+  String? audioPath,
+}) {
+  print('🚨 _showLockScreenBypassAlert called with title: $title');
+  
+  final context = _navigatorKey?.currentContext;
+  if (context == null) {
+    print('❌ No context available for amber alert navigation');
+    return;
+  }
+  
+  final currentRoute = ModalRoute.of(context);
+  if (currentRoute?.settings.name == '/emergency_alert') {
+    print('⚠️ Emergency alert already showing, ignoring duplicate');
+    return;
+  }
+  
+  try {
+    print('✅ Context found - attempting EMERGENCY navigation');
     
     _isAmberAlertActive = true;
     
-    try {
-      // 🚨 STEP 1: Force app to foreground using native Android intent
-      await _forceAppToForegroundNative();
-      
-      // 🚨 STEP 2: Small delay to let app come to foreground
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      // 🚨 STEP 3: Now attempt screen hijacking
-      if (_navigatorKey?.currentState != null) {
-        print('🚨 SCREEN HIJACK: Launching amber alert screen');
-        
-        await _navigatorKey!.currentState!.push(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => AmberAlertScreen(
-              title: title,
-              message: message,
-              taskDescription: taskDescription ?? 'Emergency Alert',
-              audioPath: audioPath,
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => AmberAlertScreen(
+          title: title,
+          message: message,
+          taskDescription: taskDescription ?? 'Emergency Alert',
+          payload: payload,
+          audioPath: audioPath,
+        ),
+        opaque: true,
+        fullscreenDialog: true,
+        transitionDuration: const Duration(milliseconds: 200),
+        settings: const RouteSettings(
+          name: '/emergency_alert',
+          arguments: {'emergency': true, 'bypassLock': true},
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.0, -1.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            )),
+            child: FadeTransition(
+              opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
+              child: child,
             ),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-            settings: const RouteSettings(name: '/amber-alert'),
-            barrierDismissible: false,
-            fullscreenDialog: true,
-          ),
-        );
-        
-        _isAmberAlertActive = false;
-        print('🔄 Amber alert screen closed');
-        
-        // Manual reset of amber alert flag when screen closes
-        NotificationManager.instance.resetAmberAlertFlag();
-        
-      } else {
-        print('❌ Navigator key not available for amber alert');
+          );
+        },
+      ),
+      (route) => route.isFirst,  // 🔥 KEY: This removes all routes and forces hijack!
+    );
+    
+    print('✅ EMERGENCY navigation initiated successfully');
+    
+    Timer(const Duration(seconds: 3), () {
+      if (_isAmberAlertActive) {
+        print('! Auto-resetting amber alert flag (timeout)');
         _isAmberAlertActive = false;
       }
-    } catch (e) {
-      print('❌ Error showing amber alert screen: $e');
-      _isAmberAlertActive = false;
-    }
+    });
+    
+  } catch (e) {
+    print('❌ Error during emergency navigation: $e');
+    _isAmberAlertActive = false;
   }
+}
 
   // 🚨 NEW: Force app to foreground using native Android mechanism
 Future<void> _forceAppToForegroundNative() async {
