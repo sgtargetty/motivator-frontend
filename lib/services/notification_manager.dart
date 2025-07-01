@@ -452,68 +452,56 @@ class NotificationManager {
   }
 
   @pragma("vm:entry-point")
+// Update your _onNotificationActionReceived method to handle the emergency button:
+
+@pragma("vm:entry-point")
 static Future<void> _onNotificationActionReceived(ReceivedAction receivedAction) async {
   print('🔔 Notification action received: ${receivedAction.buttonKeyPressed}');
   print('🚨 DEBUG: _onNotificationActionReceived was called!');
   
   try {
-    // 🚨 HANDLE EMERGENCY ALERT ACTION - DIRECT APP LAUNCH
+    // 🚨 Handle emergency button press
     if (receivedAction.buttonKeyPressed == 'OPEN_EMERGENCY') {
-      print('🚨 EMERGENCY ALERT BUTTON PRESSED - LAUNCHING APP NOW!');
+      print('🚨 EMERGENCY BUTTON PRESSED - LAUNCHING AMBER ALERT SCREEN');
       
-      // This will directly bring the app to foreground
-      final taskDescription = receivedAction.payload?['taskDescription'] ?? 'Emergency Alert';
-      final motivationalLine = receivedAction.payload?['motivationalLine'] ?? 'Critical motivational emergency requires your attention!';
-      final audioPath = receivedAction.payload?['audioFilePath'];
-      
-      // Force app to foreground and show alert screen
-      NotificationManager.instance._showLockScreenBypassAlert(
-        title: '🚨 EMERGENCY ALERT 🚨',
-        message: motivationalLine,
-        taskDescription: taskDescription,
-        payload: receivedAction.payload,
-        audioPath: audioPath,
-      );
-      
-      return;
-    }
-    
-    if (receivedAction.id == 999999) {
-      print('🔄 Helper notification tapped (ignoring)');
-      return;
-    }
-    
-    final isAmberAlert = receivedAction.channelKey == 'amber_alert_channel';
-    final isEmergencyAlert = receivedAction.payload?['emergency'] == 'true';
-    final strategy = receivedAction.payload?['strategy'];
-    
-    if (isAmberAlert || isEmergencyAlert) {
-      print('🚨 AMBER ALERT TAPPED - STRATEGY: $strategy');
-      print('🚨 Launching amber alert screen directly');
-      
-      // Launch amber alert screen when notification body is tapped
-      NotificationManager.instance._showLockScreenBypassAlert(
-        title: receivedAction.title ?? '🚨 EMERGENCY ALERT 🚨',
-        message: receivedAction.payload?['motivationalLine'] ?? 'Critical motivational emergency requires your attention!',
-        taskDescription: receivedAction.payload?['taskDescription'],
-        payload: receivedAction.payload,
-        audioPath: receivedAction.payload?['audioFilePath'],
-      );
-      
-      try {
-        for (int i = 0; i < 3; i++) {
-          HapticFeedback.heavyImpact();
-          await Future.delayed(const Duration(milliseconds: 200));
+      final context = NotificationManager.instance._navigatorKey?.currentContext;
+      if (context != null) {
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => AmberAlertScreen(
+              title: receivedAction.title ?? '🚨 EMERGENCY ALERT 🚨',
+              message: receivedAction.payload?['motivationalLine'] ?? 'Critical emergency alert!',
+              taskDescription: receivedAction.payload?['taskDescription'] ?? 'Emergency Alert',
+              payload: receivedAction.payload,
+              audioPath: receivedAction.payload?['audioFilePath'],
+            ),
+            fullscreenDialog: true,
+            transitionDuration: Duration.zero,
+            settings: const RouteSettings(name: '/amber-alert'),
+          ),
+        );
+        
+        print('✅ Amber alert screen launched from notification action');
+        
+        // Trigger vibration when screen opens
+        try {
+          for (int i = 0; i < 5; i++) {
+            HapticFeedback.heavyImpact();
+            await Future.delayed(const Duration(milliseconds: 200));
+          }
+        } catch (e) {
+          print('⚠️ Error with amber alert haptic pattern: $e');
         }
-      } catch (e) {
-        print('⚠️ Error with amber alert tap feedback: $e');
+        
+      } else {
+        print('❌ No context available for amber alert screen');
       }
       
       return;
     }
     
-    // ===== NORMAL NOTIFICATION HANDLING (NON-AMBER ALERTS) =====
-    if (receivedAction.payload != null && receivedAction.payload!.isNotEmpty) {
+    // Handle other notification actions (existing code)
+    if (receivedAction.payload != null) {
       final taskDescription = receivedAction.payload!['taskDescription'];
       final motivationalLine = receivedAction.payload!['motivationalLine'];
       final audioFilePath = receivedAction.payload!['audioFilePath'];
@@ -602,6 +590,10 @@ static Future<void> _deployAmberAlert({
 
   // Replace your _showLockScreenBypassAlert method in notification_manager.dart with this:
 
+// Replace your _showLockScreenBypassAlert method in notification_manager.dart with this:
+
+// Replace your _showLockScreenBypassAlert method with this pure notification approach:
+
 void _showLockScreenBypassAlert({
   required String title,
   required String message,
@@ -619,78 +611,76 @@ void _showLockScreenBypassAlert({
   _isAmberAlertActive = true;
   
   try {
-    // 🚨 STEP 1: Force app to foreground using native Android intent
-    print('🚨 STEP 1: Forcing app to foreground...');
-    await _forceAppToForegroundNative();
+    // 🚨 PURE NOTIFICATION APPROACH - Just like the working hijack version
+    print('🚨 Creating powerful fullscreen intent notification for lock screen bypass...');
     
-    // 🚨 STEP 2: Small delay to let app come to foreground
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // 🚨 STEP 3: Now attempt screen hijacking
-    final context = _navigatorKey?.currentContext;
-    if (context == null) {
-      print('❌ No context available for amber alert navigation after foreground');
-      _isAmberAlertActive = false;
-      return;
-    }
-    
-    final currentRoute = ModalRoute.of(context);
-    if (currentRoute?.settings.name == '/emergency_alert') {
-      print('⚠️ Emergency alert already showing, ignoring duplicate');
-      _isAmberAlertActive = false;
-      return;
-    }
-    
-    print('🚨 SCREEN HIJACK: Launching amber alert screen');
-    
-    Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => _buildEmergencyOverlay(
-          title: title,
-          message: message,
-          taskDescription: taskDescription,
-          payload: payload,
-          audioPath: audioPath,
-        ),
-        opaque: true,
-        fullscreenDialog: true,
-        transitionDuration: const Duration(milliseconds: 200),
-        settings: const RouteSettings(
-          name: '/emergency_alert',
-          arguments: {'emergency': true, 'bypassLock': true},
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.0, -1.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOut,
-            )),
-            child: FadeTransition(
-              opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              ),
-              child: child,
-            ),
-          );
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 991,
+        channelKey: 'amber_alert_channel',
+        
+        // 🚨 EMERGENCY STYLING (matches working version)
+        title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
+        body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
+        summary: 'EMERGENCY ALERT SYSTEM',
+        
+        // 🚨 MAXIMUM VISIBILITY SETTINGS
+        notificationLayout: NotificationLayout.BigText,
+        category: NotificationCategory.Alarm,
+        
+        // 🚨 FULL SCREEN SETTINGS
+        wakeUpScreen: true,
+        fullScreenIntent: true,
+        criticalAlert: true,
+        
+        // 🚨 PERSISTENCE SETTINGS
+        locked: false,
+        autoDismissible: false,
+        
+        // 🚨 VISIBILITY FLAGS
+        showWhen: true,
+        displayOnForeground: true,
+        displayOnBackground: true,
+        
+        // 🚨 VISUAL IMPACT
+        color: Colors.red,
+        backgroundColor: Colors.red,
+        actionType: ActionType.Default,
+        
+        payload: {
+          'alertType': 'full_screen_intent',
+          'emergency': 'true',
+          'priority': 'maximum',
+          'strategy': 'A',
+          'isAmberAlert': 'true',
+          'taskDescription': taskDescription ?? 'Emergency Alert',
+          'motivationalLine': message,
+          'audioFilePath': audioPath ?? '',
+          'bypassLockScreen': 'true',
         },
       ),
-      (route) => route.isFirst,  // 🔥 KEY: This removes all routes and forces hijack!
+      // 🚨 ACTION BUTTONS (like working version)
+      actionButtons: [
+        NotificationActionButton(
+          key: 'OPEN_EMERGENCY',
+          label: 'OPEN EMERGENCY ALERT',
+          actionType: ActionType.Default,
+          requireInputText: false,
+          autoDismissible: true,
+        ),
+      ],
     );
     
-    print('✅ EMERGENCY navigation initiated successfully');
+    print('✅ Pure notification hijack created - should bypass lock screen automatically');
     
-    Timer(const Duration(seconds: 3), () {
-      if (_isAmberAlertActive) {
-        print('! Auto-resetting amber alert flag (timeout)');
-        _isAmberAlertActive = false;
-      }
+    // 🚨 Reset flag after delay (the notification handles the hijacking)
+    Timer(const Duration(seconds: 5), () {
+      _isAmberAlertActive = false;
+      print('🔄 Amber alert flag reset after notification hijack');
     });
     
   } catch (e) {
-    print('❌ Error during emergency navigation: $e');
+    print('❌ Error creating notification hijack: $e');
     _isAmberAlertActive = false;
   }
 }
