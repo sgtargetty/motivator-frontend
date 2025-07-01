@@ -615,46 +615,56 @@ class NotificationManager {
 
   // 🚨 NEW: Force app to foreground using native Android mechanism
   Future<void> _forceAppToForegroundNative() async {
-    print('🚨 FORCING APP TO FOREGROUND USING NATIVE INTENT');
+  print('🚨 FORCING APP TO FOREGROUND USING NATIVE INTENT');
+  
+  try {
+    // Create a high-priority notification that forces the app to foreground
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 999997,
+        channelKey: 'amber_alert_channel',
+        title: 'EMERGENCY SYSTEM OVERRIDE',
+        body: 'Bringing app to foreground for critical alert...',
+        payload: {
+          'emergency': 'true',
+          'strategy': 'A',
+          'isAmberAlert': 'true',
+          'taskDescription': 'System Override',
+          'motivationalLine': 'Forcing app to foreground for emergency alert',
+          'bypassLockScreen': 'true',
+        },
+        // 🚨 CRITICAL: Full screen intent settings for locked screen
+        wakeUpScreen: true,
+        fullScreenIntent: true,
+        criticalAlert: true,
+        category: NotificationCategory.Alarm,
+        displayOnForeground: true,
+        displayOnBackground: true,
+        locked: false,
+        autoDismissible: true,
+        showWhen: false,
+        color: Colors.red,
+      ),
+    );
     
+    print('✅ Foreground notification created successfully');
+    
+    // 🚨 STEP 2: Wait briefly for the notification to take effect
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // 🚨 STEP 3: Cancel the helper notification immediately
     try {
-      // Create a high-priority notification that forces the app to foreground
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: 999997,
-          channelKey: 'amber_alert_channel',
-          title: 'EMERGENCY SYSTEM OVERRIDE',
-          body: 'Bringing app to foreground for critical alert...',
-          payload: {
-            'emergency': 'true',
-            'strategy': 'A',
-            'isAmberAlert': 'true',
-            'taskDescription': 'System Override',
-            'motivationalLine': 'Forcing app to foreground for amber alert',
-            'forceToForeground': 'true',
-          },
-          wakeUpScreen: true,
-          fullScreenIntent: true,
-          criticalAlert: true,
-          displayOnForeground: true,
-          displayOnBackground: true,
-          category: NotificationCategory.Call, // Use CALL category for maximum priority
-          locked: false,
-          autoDismissible: true,
-        ),
-      );
-      
-      print('🚨 Foreground force notification created');
-      
-      // Cancel the helper notification after brief delay
-      await Future.delayed(const Duration(milliseconds: 200));
       await AwesomeNotifications().cancel(999997);
-      print('🚨 Helper notification cancelled');
-      
+      print('✅ Helper notification cleaned up');
     } catch (e) {
-      print('❌ Error forcing app to foreground: $e');
+      print('⚠️ Could not clean up helper notification: $e');
     }
+    
+  } catch (e) {
+    print('❌ Error forcing app to foreground: $e');
+    rethrow;
   }
+}
 
   // ===== AUDIO HANDLING =====
   Future<void> _playEmergencyAudio(String audioFilePath, bool forceOverrideSilent) async {
