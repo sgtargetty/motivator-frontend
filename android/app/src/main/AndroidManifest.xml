@@ -56,8 +56,6 @@
                 android:excludeFromRecents="false"
                 android:allowEmbedded="true"
                 android:resizeableActivity="true"
-                android:showOnLockScreen="true"
-                android:dismissKeyguard="true"
                 android:screenOrientation="unspecified">
 
                 <meta-data
