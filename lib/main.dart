@@ -152,21 +152,19 @@ void main() async {
       NotificationChannel(
         channelKey: 'amber_alert_channel',
         channelName: '🚨 Critical Motivational Alerts',
-        channelDescription: 'Emergency-level motivational notifications that bypass silent mode',
-        importance: NotificationImportance.Max,
+        channelDescription: 'Emergency motivational alerts that override device settings',
         defaultColor: Colors.red,
         ledColor: Colors.red,
+        importance: NotificationImportance.Max,  // Changed from High to Max
+        defaultRingtoneType: DefaultRingtoneType.Alarm,  // Use alarm sound
         playSound: true,
         enableVibration: true,
-        criticalAlerts: true,
         enableLights: true,
         channelShowBadge: true,
         onlyAlertOnce: false,
-        locked: true,
-        // 🚨 ADD THESE CRITICAL FLAGS:
-        defaultRingtoneType: DefaultRingtoneType.Alarm,
-        groupAlertBehavior: GroupAlertBehavior.All,
-        groupSort: GroupSort.Desc,
+        criticalAlerts: true,
+        defaultPrivacy: NotificationPrivacy.Public,
+        locked: false,
       ),
       
       // 🔔 REGULAR MOTIVATIONAL REMINDERS (Keep existing)
