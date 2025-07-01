@@ -617,7 +617,29 @@ class AmberAlertService {
   
   print("🚨 Strategy A only deployed for testing!");
 }
-
+static Future<void> testDirectAmberAlert(BuildContext context) async {
+  print("🚨 DIRECT AMBER ALERT TEST - SKIPPING NOTIFICATION FLOW");
+  
+  // Trigger vibration pattern first
+  for (int i = 0; i < 5; i++) {
+    HapticFeedback.heavyImpact();
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+  
+  // Navigate directly to AmberAlertScreen
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const AmberAlertScreen(
+        title: '🚨 DIRECT TEST EMERGENCY ALERT 🚨',
+        message: 'This is a direct test bypassing the notification flow!',
+        taskDescription: 'Direct test - bypassing notifications',
+      ),
+      fullscreenDialog: true,
+      transitionDuration: Duration.zero,
+      settings: const RouteSettings(name: '/amber-alert'),
+    ),
+  );
+}
   // 🚨 ULTIMATE TEST: All permissions + Strategy A
   static Future<void> testTrueFullScreenAmberAlert(BuildContext context) async {
     print("🚨 Testing ULTIMATE FULL SCREEN amber alert...");
@@ -659,6 +681,7 @@ class AmberAlertService {
   // 🚨 Strategy A: Enhanced Full Screen Intent Notification
   // ===== VERIFY YOUR createFullScreenIntentNotification METHOD HAS THIS PAYLOAD =====
 
+// 🚨 Strategy A: Enhanced Full Screen Intent Notification - FIXED VERSION
 static Future<void> createFullScreenIntentNotification(BuildContext context) async {
   print("🚨 Creating enhanced full-screen intent notification...");
   
@@ -672,23 +695,31 @@ static Future<void> createFullScreenIntentNotification(BuildContext context) asy
         title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
         body: 'CRITICAL ALERT: Your immediate attention is required!\n\nScreen will hijack automatically.',
         summary: 'EMERGENCY ALERT SYSTEM',
+        
+        // 🚨 MAXIMUM VISIBILITY SETTINGS
         notificationLayout: NotificationLayout.BigText,
         category: NotificationCategory.Alarm,
+        
+        // 🚨 CRITICAL FIX: REMOVE fullScreenIntent to prevent app opening
         wakeUpScreen: true,
-        
-        // 🚨 CRITICAL FIX: Remove fullScreenIntent to prevent app opening
-        // fullScreenIntent: true,  // ❌ THIS OPENS THE APP - REMOVE IT
-        
+        // fullScreenIntent: true,  // ❌ REMOVED - This opens the main app instead of hijack flow
         criticalAlert: true,
+        
+        // 🚨 PERSISTENCE SETTINGS
+        locked: false, // Allow dismissal for testing
+        autoDismissible: false,
+        
+        // 🚨 VISIBILITY FLAGS
+        showWhen: true,
         displayOnForeground: true,
         displayOnBackground: true,
-        locked: false,
-        autoDismissible: false,
-        showWhen: true,
+        
+        // 🚨 VISUAL IMPACT
         color: Colors.red,
         backgroundColor: Colors.red,
+        actionType: ActionType.Default,
         
-        // 🚨 CRITICAL PAYLOAD - MUST MATCH EXACTLY
+        // 🚨 CRITICAL PAYLOAD - MUST MATCH EXACTLY FOR HIJACK DETECTION
         payload: {
           'alertType': 'full_screen_intent',
           'emergency': 'true',        // 🎯 CRITICAL - TRIGGERS AUTO-HIJACK
@@ -704,6 +735,7 @@ static Future<void> createFullScreenIntentNotification(BuildContext context) asy
     );
     
     print("✅ Full-screen intent notification created (without fullScreenIntent)");
+    print("🎯 This should trigger _onNotificationDisplayed() → hijack flow → AmberAlertScreen");
     
   } catch (e) {
     print("❌ Error creating full-screen intent notification: $e");
