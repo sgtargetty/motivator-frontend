@@ -661,7 +661,7 @@ static Future<void> _deployAmberAlert({
   }
 
   // 🚨 NEW: Force app to foreground using native Android mechanism
-  Future<void> _forceAppToForegroundNative() async {
+Future<void> _forceAppToForegroundNative() async {
   print('🚨 FORCING APP TO FOREGROUND USING NATIVE INTENT');
   
   try {
