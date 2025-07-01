@@ -452,106 +452,153 @@ class NotificationManager {
   }
 
   @pragma("vm:entry-point")
-  static Future<void> _onNotificationActionReceived(ReceivedAction receivedAction) async {
-    print('🔔 Notification tapped: ${receivedAction.payload}');
-    print('🚨 DEBUG: _onNotificationActionReceived was called!');
-    
-    try {
-      if (receivedAction.id == 999999) {
-        print('🔄 Helper notification tapped (ignoring)');
-        return;
-      }
+static Future<void> _onNotificationActionReceived(ReceivedAction receivedAction) async {
+  print('🔔 Notification action received: ${receivedAction.buttonKeyPressed}');
+  print('🚨 DEBUG: _onNotificationActionReceived was called!');
+  
+  try {
+    // 🚨 HANDLE EMERGENCY ALERT ACTION - DIRECT APP LAUNCH
+    if (receivedAction.buttonKeyPressed == 'OPEN_EMERGENCY') {
+      print('🚨 EMERGENCY ALERT BUTTON PRESSED - LAUNCHING APP NOW!');
       
-      final isAmberAlert = receivedAction.channelKey == 'amber_alert_channel';
-      final isEmergencyAlert = receivedAction.payload?['emergency'] == 'true';
-      final strategy = receivedAction.payload?['strategy'];
+      // This will directly bring the app to foreground
+      final taskDescription = receivedAction.payload?['taskDescription'] ?? 'Emergency Alert';
+      final motivationalLine = receivedAction.payload?['motivationalLine'] ?? 'Critical motivational emergency requires your attention!';
+      final audioPath = receivedAction.payload?['audioFilePath'];
       
-      if (isAmberAlert || isEmergencyAlert) {
-        print('🚨 AMBER ALERT TAPPED - STRATEGY: $strategy');
-        print('🚨 Amber alert screen already hijacked - providing feedback only');
-        
-        try {
-          for (int i = 0; i < 3; i++) {
-            HapticFeedback.heavyImpact();
-            await Future.delayed(const Duration(milliseconds: 200));
-          }
-        } catch (e) {
-          print('⚠️ Error with amber alert tap feedback: $e');
-        }
-        
-        return;
-      }
-      
-      // ===== NORMAL NOTIFICATION HANDLING (NON-AMBER ALERTS) =====
-      if (receivedAction.payload != null && receivedAction.payload!.isNotEmpty) {
-        final taskDescription = receivedAction.payload!['taskDescription'];
-        final motivationalLine = receivedAction.payload!['motivationalLine'];
-        final audioFilePath = receivedAction.payload!['audioFilePath'];
-        final forceOverrideSilent = receivedAction.payload!['forceOverrideSilent'] == 'true';
-        
-        print('🎯 Task: $taskDescription');
-        print('💬 Message: $motivationalLine');
-        print('🎵 Audio file: $audioFilePath');
-        print('🔊 Override silent: $forceOverrideSilent');
-        
-        if (audioFilePath != null && audioFilePath.isNotEmpty) {
-          await NotificationManager.instance._playEmergencyAudio(audioFilePath, forceOverrideSilent);
-        }
-      }
-    } catch (e) {
-      print('❌ Error handling notification action: $e');
-    }
-  }
-
-  // ===== AMBER ALERT DEPLOYMENT =====
-  static Future<void> _deployAmberAlert({
-    required String taskDescription,
-    required String motivationalLine,
-    required String audioFilePath,
-    required int triggerId,
-  }) async {
-    print('🚨 DEPLOYING AMBER ALERT FROM TRIGGER');
-    
-    try {
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: 888888,
-          channelKey: 'amber_alert_channel',
-          title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
-          body: 'CRITICAL ALERT: $taskDescription\n\nYour immediate attention is required!',
-          summary: 'EMERGENCY ALERT SYSTEM',
-          notificationLayout: NotificationLayout.BigText,
-          category: NotificationCategory.Alarm,
-          wakeUpScreen: true,
-          fullScreenIntent: true,
-          criticalAlert: true,
-          locked: false,
-          autoDismissible: false,
-          showWhen: true,
-          displayOnForeground: true,
-          displayOnBackground: true,
-          color: Colors.red,
-          backgroundColor: Colors.red,
-          payload: {
-            'taskDescription': taskDescription,
-            'motivationalLine': motivationalLine,
-            'audioFilePath': audioFilePath,
-            'alertType': 'full_screen_intent',
-            'emergency': 'true',
-            'priority': 'maximum',
-            'strategy': 'A',
-            'isAmberAlert': 'true',
-            'playAudio': 'true',
-          },
-        ),
+      // Force app to foreground and show alert screen
+      NotificationManager.instance._showLockScreenBypassAlert(
+        title: '🚨 EMERGENCY ALERT 🚨',
+        message: motivationalLine,
+        taskDescription: taskDescription,
+        payload: receivedAction.payload,
+        audioPath: audioPath,
       );
       
-      print('🚨 Amber alert deployed from trigger successfully!');
-      
-    } catch (e) {
-      print('❌ Error deploying amber alert from trigger: $e');
+      return;
     }
+    
+    if (receivedAction.id == 999999) {
+      print('🔄 Helper notification tapped (ignoring)');
+      return;
+    }
+    
+    final isAmberAlert = receivedAction.channelKey == 'amber_alert_channel';
+    final isEmergencyAlert = receivedAction.payload?['emergency'] == 'true';
+    final strategy = receivedAction.payload?['strategy'];
+    
+    if (isAmberAlert || isEmergencyAlert) {
+      print('🚨 AMBER ALERT TAPPED - STRATEGY: $strategy');
+      print('🚨 Launching amber alert screen directly');
+      
+      // Launch amber alert screen when notification body is tapped
+      NotificationManager.instance._showLockScreenBypassAlert(
+        title: receivedAction.title ?? '🚨 EMERGENCY ALERT 🚨',
+        message: receivedAction.payload?['motivationalLine'] ?? 'Critical motivational emergency requires your attention!',
+        taskDescription: receivedAction.payload?['taskDescription'],
+        payload: receivedAction.payload,
+        audioPath: receivedAction.payload?['audioFilePath'],
+      );
+      
+      try {
+        for (int i = 0; i < 3; i++) {
+          HapticFeedback.heavyImpact();
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+      } catch (e) {
+        print('⚠️ Error with amber alert tap feedback: $e');
+      }
+      
+      return;
+    }
+    
+    // ===== NORMAL NOTIFICATION HANDLING (NON-AMBER ALERTS) =====
+    if (receivedAction.payload != null && receivedAction.payload!.isNotEmpty) {
+      final taskDescription = receivedAction.payload!['taskDescription'];
+      final motivationalLine = receivedAction.payload!['motivationalLine'];
+      final audioFilePath = receivedAction.payload!['audioFilePath'];
+      final forceOverrideSilent = receivedAction.payload!['forceOverrideSilent'] == 'true';
+      
+      print('🎯 Task: $taskDescription');
+      print('💬 Message: $motivationalLine');
+      print('🎵 Audio file: $audioFilePath');
+      print('🔊 Override silent: $forceOverrideSilent');
+      
+      if (audioFilePath != null && audioFilePath.isNotEmpty) {
+        await NotificationManager.instance._playEmergencyAudio(audioFilePath, forceOverrideSilent);
+      }
+    }
+  } catch (e) {
+    print('❌ Error handling notification action: $e');
   }
+}
+
+  // ===== AMBER ALERT DEPLOYMENT =====
+static Future<void> _deployAmberAlert({
+  required String taskDescription,
+  required String motivationalLine,
+  required String audioFilePath,
+  required int triggerId,
+}) async {
+  print('🚨 DEPLOYING AMBER ALERT FROM TRIGGER');
+  
+  try {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 888888,
+        channelKey: 'amber_alert_channel',
+        title: '🚨 EMERGENCY MOTIVATIONAL ALERT 🚨',
+        body: 'CRITICAL ALERT: $taskDescription\n\nYour immediate attention is required!',
+        summary: 'EMERGENCY ALERT SYSTEM',
+        notificationLayout: NotificationLayout.BigText,
+        category: NotificationCategory.Alarm,
+        wakeUpScreen: true,
+        fullScreenIntent: true,
+        criticalAlert: true,
+        locked: false,
+        autoDismissible: false,
+        showWhen: true,
+        displayOnForeground: true,
+        displayOnBackground: true,
+        color: Colors.red,
+        backgroundColor: Colors.red,
+        payload: {
+          'taskDescription': taskDescription,
+          'motivationalLine': motivationalLine,
+          'audioFilePath': audioFilePath,
+          'alertType': 'full_screen_intent',
+          'emergency': 'true',
+          'priority': 'maximum',
+          'strategy': 'A',
+          'isAmberAlert': 'true',
+          'playAudio': 'true',
+        },
+      ),
+      // 🚨 CRITICAL: Add notification actions for direct app launch
+      actionButtons: [
+        NotificationActionButton(
+          key: 'OPEN_EMERGENCY',
+          label: 'OPEN EMERGENCY ALERT',
+          actionType: ActionType.SilentAction,
+          requireInputText: false,
+          autoDismissible: true,
+        ),
+        NotificationActionButton(
+          key: 'DISMISS_ALERT',
+          label: 'Dismiss',
+          actionType: ActionType.DismissAction,
+          isDangerousOption: false,
+          autoDismissible: true,
+        ),
+      ],
+    );
+    
+    print('🚨 Amber alert deployed from trigger successfully!');
+    
+  } catch (e) {
+    print('❌ Error deploying amber alert from trigger: $e');
+  }
+}
 
   // 🚨 Show Lock Screen Bypass Amber Alert
   void _showLockScreenBypassAlert({
