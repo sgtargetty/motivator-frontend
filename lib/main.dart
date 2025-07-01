@@ -26,12 +26,6 @@ import 'services/notification_manager.dart';
 // 🚨 Global navigator key for amber alerts
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// 🚨 NEW: WorkManager callback dispatcher for background amber alerts
-// @pragma('vm:entry-point')
-// void callbackDispatcher() {
-//   // WorkManager callback temporarily disabled
-// }
-
 // 🚨 NEW: Background amber alert trigger
 Future<void> _triggerBackgroundAmberAlert(Map<String, dynamic>? inputData) async {
   if (inputData == null) {
@@ -91,80 +85,80 @@ Future<void> _triggerPrecisionAmberAlert(Map<String, dynamic>? inputData) async 
     return;
   }
   
-  print('🎯 Triggering precision amber alert');
+  print('🎯 Triggering precision amber alert with AUTO-HIJACK');
   
   try {
-    // Create immediate high-priority notification
+    // Create immediate high-priority notification with hijack payload
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: DateTime.now().millisecondsSinceEpoch % 2147483647,
         channelKey: 'amber_alert_channel',
         title: '🎯 PRECISION EMERGENCY ALERT 🎯',
         body: '${inputData['taskDescription']}\n\nDelivered with precision timing!',
-        payload: {
-          'triggerAmberAlert': 'true',
-          'taskDescription': inputData['taskDescription'] ?? 'Precision Alert',
-          'motivationalLine': inputData['motivationalLine'] ?? 'Precision alert!',
-          'audioFilePath': inputData['audioPath'] ?? '',
-          'precisionDelivery': 'true',
-          'deliveredAt': DateTime.now().toIso8601String(),
-        },
+        
+        // 🚨 CRITICAL: Add the hijack flags
+        category: NotificationCategory.Alarm,
         wakeUpScreen: true,
         fullScreenIntent: true,
         criticalAlert: true,
-        category: NotificationCategory.Alarm,
-        color: Colors.orange,
         displayOnForeground: true,
         displayOnBackground: true,
-        locked: true,
+        color: Colors.red,
+        
+        payload: {
+          'taskDescription': inputData['taskDescription'] ?? 'Precision Alert',
+          'motivationalLine': inputData['motivationalLine'] ?? 'Precision alert delivered!',
+          'audioFilePath': inputData['audioPath'] ?? '',
+          
+          // 🚨 CRITICAL: These trigger the auto-hijack
+          'emergency': 'true',        // Must be 'true' as string
+          'strategy': 'A',           // Must be 'A' for hijack
+          'isAmberAlert': 'true',
+          
+          // Additional metadata
+          'precisionDelivery': 'true',
+          'backgroundTriggered': 'true',
+          'workManagerDelivery': 'true',
+        },
       ),
     );
     
-    print('✅ Precision amber alert delivered successfully');
+    print('✅ Precision amber alert with auto-hijack created');
     
   } catch (e) {
     print('❌ Failed to trigger precision amber alert: $e');
   }
 }
 
+// ===== APP INITIALIZATION =====
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  print('🚀 Starting MotivatorAI with enhanced amber alert system...');
+  print("🚀 Initializing MotivatorAI with enhanced amber alert support...");
   
-  // ✅ Initialize Awesome Notifications BEFORE runApp - ENHANCED FOR AMBER ALERTS
+  // ✅ FIRST: Initialize AwesomeNotifications with enhanced amber alert capabilities
   await AwesomeNotifications().initialize(
     null,
     [
-      // 🔥 BASIC CHANNEL (Keep existing for fallback)
-      NotificationChannel(
-        channelKey: 'test_channel',
-        channelName: 'Test Notifications',
-        channelDescription: 'Channel for testing notifications',
-        importance: NotificationImportance.High,
-        defaultColor: Colors.teal,
-        ledColor: Colors.white,
-        playSound: true,
-        enableVibration: true,
-      ),
-      
-      // 🚨 ENHANCED AMBER ALERT CHANNEL
+      // 🚨 AMBER ALERT CHANNEL (HIGH PRIORITY)
       NotificationChannel(
         channelKey: 'amber_alert_channel',
-        channelName: '🚨 Critical Motivational Alerts',
-        channelDescription: 'Emergency motivational alerts that override device settings',
+        channelName: 'Emergency Motivational Alerts',
+        channelDescription: 'Emergency-level motivational notifications that bypass silent mode',
+        importance: NotificationImportance.Max,
         defaultColor: Colors.red,
         ledColor: Colors.red,
-        importance: NotificationImportance.Max,  // Changed from High to Max
-        defaultRingtoneType: DefaultRingtoneType.Alarm,  // Use alarm sound
         playSound: true,
         enableVibration: true,
+        criticalAlerts: true,
         enableLights: true,
         channelShowBadge: true,
         onlyAlertOnce: false,
-        criticalAlerts: true,
-        defaultPrivacy: NotificationPrivacy.Public,
-        locked: false,
+        locked: true,
+        // 🚨 ADD THESE CRITICAL FLAGS:
+        defaultRingtoneType: DefaultRingtoneType.Alarm,
+        groupAlertBehavior: GroupAlertBehavior.All,
+        groupSort: GroupSort.Desc,
       ),
       
       // 🔔 REGULAR MOTIVATIONAL REMINDERS (Keep existing)
@@ -194,19 +188,6 @@ void main() async {
   );
   print("✅ AwesomeNotifications initialized with enhanced amber alert support");
   
-  // 🚨 NEW: Initialize WorkManager for background amber alerts
-  // 🚨 WorkManager temporarily disabled due to compilation issues
-  // try {
-  //   await Workmanager().initialize(
-  //     callbackDispatcher,
-  //     isInDebugMode: true,
-  //   );
-  //   print("✅ WorkManager initialized for background amber alerts");
-  // } catch (e) {
-  //   print("⚠️ WorkManager initialization failed: $e");
-  //   print("   Continuing without WorkManager support...");
-  // }
-  
   // 🚨 FIX #1: SET UP NOTIFICATION MANAGER WITH NAVIGATOR KEY
   NotificationManager.instance.setNavigatorKey(navigatorKey);
   print("✅ NotificationManager navigator key set");
@@ -231,80 +212,90 @@ Future<void> _requestEnhancedPermissions() async {
   print("🔐 Requesting enhanced permissions for amber alerts...");
   
   try {
-    // 1. Basic notification permission
-    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) {
-      isAllowed = await AwesomeNotifications().requestPermissionToSendNotifications();
+    // 1. Basic notification permissions
+    await NotificationManager.instance.requestAwesomeNotificationPermissions();
+    
+    // 2. Enhanced Android permissions for amber alerts
+    final List<Permission> permissionsToRequest = [
+      Permission.notification,
+      Permission.systemAlertWindow,
+      Permission.ignoreBatteryOptimizations,
+    ];
+    
+    Map<Permission, PermissionStatus> statuses = await permissionsToRequest.request();
+    
+    for (final entry in statuses.entries) {
+      print("🔐 ${entry.key}: ${entry.value}");
     }
     
-    if (isAllowed) {
-      print('✅ Basic notification permissions granted');
-      
-      // 2. Request critical alert permissions
-      try {
-        await AwesomeNotifications().requestPermissionToSendNotifications(
-          channelKey: 'amber_alert_channel',
-          permissions: [
-            NotificationPermission.Alert,
-            NotificationPermission.Sound,
-            NotificationPermission.Badge,
-            NotificationPermission.Vibration,
-            NotificationPermission.Light,
-            NotificationPermission.CriticalAlert, // 🚨 CRITICAL for amber alerts
-            NotificationPermission.FullScreenIntent, // 🚨 CRITICAL for lock screen
-          ],
-        );
-        print('✅ Critical alert permissions requested');
-      } catch (e) {
-        print('⚠️ Critical alert permission request failed: $e');
-      }
-      
-      // 3. Request additional Android permissions
-      if (Platform.isAndroid) {
-        try {
-          // Request system alert window permission for full screen alerts
-          await Permission.systemAlertWindow.request();
-          print('✅ System alert window permission requested');
-          
-          // Request do not disturb access
-          await Permission.accessNotificationPolicy.request();
-          print('✅ Do not disturb access requested');
-          
-          // Request schedule exact alarm permission (Android 12+)
-          await Permission.scheduleExactAlarm.request();
-          print('✅ Exact alarm permission requested');
-          
-          // 🔋 Request battery optimization exemption
-          await Permission.ignoreBatteryOptimizations.request();
-          print('✅ Battery optimization exemption requested');
-          
-        } catch (e) {
-          print('⚠️ Additional Android permissions error: $e');
-        }
-      }
-      
-    } else {
-      print('❌ Basic notification permissions denied');
-    }
+    print("✅ Enhanced permissions requested");
+    
   } catch (e) {
-    print('❌ Error requesting permissions: $e');
+    print("⚠️ Enhanced permission request failed: $e");
+    print("   Continuing with basic permissions...");
   }
 }
 
+// ===== FLUTTER APP =====
 class MotivatorApp extends StatelessWidget {
-  const MotivatorApp({super.key});
+  const MotivatorApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Motivator.AI',
-      navigatorKey: navigatorKey, // 🚨 Global navigator key for amber alerts
-      theme: ThemeData.dark().copyWith(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        scaffoldBackgroundColor: Colors.black,
+      title: 'MotivatorAI',
+      navigatorKey: navigatorKey, // 🚨 CRITICAL: Use global navigator key
+      theme: ThemeData(
+        primarySwatch: Colors.teal,
+        fontFamily: 'Roboto',
+        brightness: Brightness.light,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.light,
+        ),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: ThemeMode.system,
       home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
+      routes: {
+        '/home': (context) => const MotivatorHome(),
+        '/settings': (context) => const SettingsScreen(),
+        '/amber-alert': (context) => const AmberAlertScreen(),
+      },
+      // 🚨 Global route observer for debugging
+      navigatorObservers: [
+        _AmberAlertRouteObserver(),
+      ],
     );
+  }
+}
+
+// 🚨 Route observer for amber alert debugging
+class _AmberAlertRouteObserver extends RouteObserver<PageRoute<dynamic>> {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name == '/amber-alert') {
+      print('🚨 ROUTE: Amber alert screen pushed');
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (route.settings.name == '/amber-alert') {
+      print('🚨 ROUTE: Amber alert screen popped');
+      // Reset amber alert flag when route is popped
+      NotificationManager.instance.resetAmberAlertFlag();
+    }
   }
 }
